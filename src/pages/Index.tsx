@@ -6,6 +6,8 @@ import { FoodCard } from "@/components/FoodCard";
 import { LeaderboardCard } from "@/components/LeaderboardCard";
 import { AddFoodButton } from "@/components/AddFoodButton";
 import { StreakBadge } from "@/components/StreakBadge";
+import { CommunityPage } from "@/pages/Community";
+import { RanksPage } from "@/pages/Ranks";
 import { toast } from "sonner";
 
 // Mock data for demonstration
@@ -78,72 +80,105 @@ export default function Index() {
     });
   };
 
+  const renderContent = () => {
+    switch (activeNav) {
+      case "community":
+        return <CommunityPage />;
+      case "leaderboard":
+        return <RanksPage />;
+      case "profile":
+        return (
+          <div className="container px-4 py-6">
+            <div className="rounded-2xl bg-card shadow-card p-6 text-center">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                <img
+                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=Alex"
+                  alt="Profile"
+                  className="w-16 h-16 rounded-full"
+                />
+              </div>
+              <h2 className="font-display text-xl font-bold text-foreground">
+                {mockUser.name}
+              </h2>
+              <p className="text-muted-foreground text-sm mt-1">
+                Profile page coming soon!
+              </p>
+            </div>
+          </div>
+        );
+      default:
+        return (
+          <>
+            <Header
+              userName={mockUser.name}
+              streak={mockUser.streak}
+              points={mockUser.points}
+            />
+            <main className="container px-4 py-6 space-y-6">
+              {/* Hero Streak Section */}
+              <section className="relative overflow-hidden rounded-2xl gradient-streak p-6 shadow-streak">
+                <div className="relative z-10">
+                  <p className="text-accent-foreground/80 text-sm font-medium mb-1">
+                    🔥 Sugar-Free Streak
+                  </p>
+                  <div className="flex items-baseline gap-3">
+                    <StreakBadge days={mockUser.streak} size="lg" showLabel={false} />
+                    <span className="text-2xl font-display font-bold text-accent-foreground">
+                      days strong!
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-accent-foreground/70">
+                    Keep it up! You're in the top 15% of your community.
+                  </p>
+                </div>
+                {/* Decorative elements */}
+                <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
+                <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
+              </section>
+
+              {/* Daily Stats */}
+              <DailyStats {...mockStats} />
+
+              {/* Today's Food Log */}
+              <section>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-display text-lg font-bold text-foreground">
+                    Today's Log
+                  </h2>
+                  <span className="text-sm text-muted-foreground">
+                    {mockFoods.length} items
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {mockFoods.map((food) => (
+                    <FoodCard
+                      key={food.id}
+                      name={food.name}
+                      time={food.time}
+                      nutrition={food.nutrition}
+                      imageUrl={food.imageUrl}
+                    />
+                  ))}
+                </div>
+              </section>
+
+              {/* Leaderboard Preview */}
+              <LeaderboardCard users={mockLeaderboard} currentUserId="user-1" />
+            </main>
+
+            <AddFoodButton
+              onScan={handleScan}
+              onSearch={handleSearch}
+              onManual={handleManual}
+            />
+          </>
+        );
+    }
+  };
+
   return (
     <div className="min-h-screen gradient-hero pb-24">
-      <Header
-        userName={mockUser.name}
-        streak={mockUser.streak}
-        points={mockUser.points}
-      />
-
-      <main className="container px-4 py-6 space-y-6">
-        {/* Hero Streak Section */}
-        <section className="relative overflow-hidden rounded-2xl gradient-streak p-6 shadow-streak">
-          <div className="relative z-10">
-            <p className="text-accent-foreground/80 text-sm font-medium mb-1">
-              🔥 Sugar-Free Streak
-            </p>
-            <div className="flex items-baseline gap-3">
-              <StreakBadge days={mockUser.streak} size="lg" showLabel={false} />
-              <span className="text-2xl font-display font-bold text-accent-foreground">
-                days strong!
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-accent-foreground/70">
-              Keep it up! You're in the top 15% of your community.
-            </p>
-          </div>
-          {/* Decorative elements */}
-          <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
-          <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
-        </section>
-
-        {/* Daily Stats */}
-        <DailyStats {...mockStats} />
-
-        {/* Today's Food Log */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-lg font-bold text-foreground">
-              Today's Log
-            </h2>
-            <span className="text-sm text-muted-foreground">
-              {mockFoods.length} items
-            </span>
-          </div>
-          <div className="space-y-3">
-            {mockFoods.map((food) => (
-              <FoodCard
-                key={food.id}
-                name={food.name}
-                time={food.time}
-                nutrition={food.nutrition}
-                imageUrl={food.imageUrl}
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* Leaderboard Preview */}
-        <LeaderboardCard users={mockLeaderboard} currentUserId="user-1" />
-      </main>
-
-      <AddFoodButton
-        onScan={handleScan}
-        onSearch={handleSearch}
-        onManual={handleManual}
-      />
-
+      {renderContent()}
       <BottomNav active={activeNav} onNavigate={setActiveNav} />
     </div>
   );
