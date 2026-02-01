@@ -1,5 +1,13 @@
 # Welcome to my Lovable project
 
+everything in this world becomes intersting when we are competing.!
+but when does an competetion becomes interesting?
+when even our friends , collegues or family members take part in it.
+it drives us to our limits checking with them competing with them , @ end of the day, its not about competetion but pushing yourself a further more towards your goal of sugar cut or any calorie deficiet.
+so i am developing an interface where the users can create a community , join in it, compete with their close ones and make it a fun filled ranked real life game,
+i hope people play digital games more giving nothing in return except stress , but this game pushes you to your limits making the man you wished before.
+thankyou and hope you also contribute when you like it.
+happy coding!
 
 ## Project info
 
