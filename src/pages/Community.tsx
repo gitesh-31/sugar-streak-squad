@@ -1,84 +1,39 @@
 import { useState } from "react";
-import { Users, Plus, Crown, UserPlus, ChevronRight, Search, Share2 } from "lucide-react";
+import { Users, Plus, Crown, UserPlus, ChevronRight, Search, Share2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 import { InviteFriendsDialog } from "@/components/InviteFriendsDialog";
+import { useCommunities, type Community } from "@/hooks/useCommunities";
 
-interface Community {
-  id: string;
-  name: string;
-  memberCount: number;
-  avatar: string;
-  yourRank: number;
-  topStreak: number;
+// Emoji avatars for communities
+const COMMUNITY_EMOJIS = ["🏋️", "🏢", "👨‍👩‍👧‍👦", "🥑", "🏃", "🥗", "⭐", "🔥", "💪", "🎯", "🏆", "❤️"];
+
+function getEmojiForCommunity(name: string): string {
+  // Generate a consistent emoji based on the name
+  const hash = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return COMMUNITY_EMOJIS[hash % COMMUNITY_EMOJIS.length];
 }
 
 interface CommunityPageProps {
   onBack?: () => void;
 }
 
-const mockJoinedCommunities: Community[] = [
-  {
-    id: "1",
-    name: "Sugar-Free Warriors",
-    memberCount: 24,
-    avatar: "🏋️",
-    yourRank: 3,
-    topStreak: 45,
-  },
-  {
-    id: "2",
-    name: "Office Health Club",
-    memberCount: 12,
-    avatar: "🏢",
-    yourRank: 1,
-    topStreak: 21,
-  },
-  {
-    id: "3",
-    name: "Family Fitness",
-    memberCount: 6,
-    avatar: "👨‍👩‍👧‍👦",
-    yourRank: 2,
-    topStreak: 18,
-  },
-];
-
-const mockAvailableCommunities: Community[] = [
-  {
-    id: "4",
-    name: "Keto Champions",
-    memberCount: 156,
-    avatar: "🥑",
-    yourRank: 0,
-    topStreak: 90,
-  },
-  {
-    id: "5",
-    name: "Morning Runners",
-    memberCount: 89,
-    avatar: "🏃",
-    yourRank: 0,
-    topStreak: 67,
-  },
-  {
-    id: "6",
-    name: "Vegan Squad",
-    memberCount: 234,
-    avatar: "🥗",
-    yourRank: 0,
-    topStreak: 120,
-  },
-];
-
 export function CommunityPage({ onBack }: CommunityPageProps) {
-  const [joinedCommunities, setJoinedCommunities] = useState(mockJoinedCommunities);
-  const [availableCommunities, setAvailableCommunities] = useState(mockAvailableCommunities);
+  const {
+    joinedCommunities,
+    availableCommunities,
+    isLoading,
+    createCommunity,
+    joinCommunity,
+  } = useCommunities();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newCommunityName, setNewCommunityName] = useState("");
+  const [newCommunityDescription, setNewCommunityDescription] = useState("");
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
 
@@ -88,40 +43,39 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
   };
 
   const handleJoinCommunity = (community: Community) => {
-    setAvailableCommunities((prev) => prev.filter((c) => c.id !== community.id));
-    setJoinedCommunities((prev) => [
-      ...prev,
-      { ...community, yourRank: community.memberCount + 1 },
-    ]);
-    toast.success(`Joined ${community.name}!`, {
-      description: "Start tracking to climb the ranks!",
-    });
+    joinCommunity.mutate(community.id);
   };
 
   const handleCreateCommunity = () => {
     if (!newCommunityName.trim()) {
-      toast.error("Please enter a community name");
       return;
     }
-    const newCommunity: Community = {
-      id: `new-${Date.now()}`,
-      name: newCommunityName,
-      memberCount: 1,
-      avatar: "⭐",
-      yourRank: 1,
-      topStreak: 12,
-    };
-    setJoinedCommunities((prev) => [...prev, newCommunity]);
-    setNewCommunityName("");
-    setShowCreateModal(false);
-    toast.success(`Created ${newCommunityName}!`, {
-      description: "Invite your friends to join!",
-    });
+    createCommunity.mutate(
+      { name: newCommunityName, description: newCommunityDescription },
+      {
+        onSuccess: () => {
+          setNewCommunityName("");
+          setNewCommunityDescription("");
+          setShowCreateModal(false);
+        },
+      }
+    );
   };
 
   const filteredAvailable = availableCommunities.filter((c) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen gradient-hero pb-24 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
+          <p className="text-muted-foreground">Loading communities...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-hero pb-24">
@@ -200,17 +154,30 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
               className="pl-10"
             />
           </div>
-          <div className="space-y-3">
-            {filteredAvailable.map((community, index) => (
-              <CommunityCard
-                key={community.id}
-                community={community}
-                isJoined={false}
-                onJoin={() => handleJoinCommunity(community)}
-                index={index}
-              />
-            ))}
-          </div>
+          {filteredAvailable.length > 0 ? (
+            <div className="space-y-3">
+              {filteredAvailable.map((community, index) => (
+                <CommunityCard
+                  key={community.id}
+                  community={community}
+                  isJoined={false}
+                  onJoin={() => handleJoinCommunity(community)}
+                  isJoining={joinCommunity.isPending}
+                  index={index}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl bg-card/50 p-6 text-center">
+              <Search className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+              <p className="text-muted-foreground">
+                {searchQuery ? "No communities match your search" : "No communities to discover yet"}
+              </p>
+              <p className="text-sm text-muted-foreground/70 mt-1">
+                Be the first to create one!
+              </p>
+            </div>
+          )}
         </section>
 
         {/* Create Modal */}
@@ -220,24 +187,44 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
               <h3 className="font-display text-lg font-bold text-foreground mb-4">
                 Create Community
               </h3>
-              <Input
-                placeholder="Community name..."
-                value={newCommunityName}
-                onChange={(e) => setNewCommunityName(e.target.value)}
-                className="mb-4"
-              />
-              <div className="flex gap-3">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="community-name">Name</Label>
+                  <Input
+                    id="community-name"
+                    placeholder="e.g., Office Health Club"
+                    value={newCommunityName}
+                    onChange={(e) => setNewCommunityName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="community-description">Description (optional)</Label>
+                  <Textarea
+                    id="community-description"
+                    placeholder="What's this community about?"
+                    value={newCommunityDescription}
+                    onChange={(e) => setNewCommunityDescription(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
                 <Button
                   variant="outline"
                   onClick={() => setShowCreateModal(false)}
                   className="flex-1"
+                  disabled={createCommunity.isPending}
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleCreateCommunity}
                   className="flex-1 gradient-primary text-primary-foreground"
+                  disabled={createCommunity.isPending || !newCommunityName.trim()}
                 >
+                  {createCommunity.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : null}
                   Create
                 </Button>
               </div>
@@ -264,10 +251,13 @@ interface CommunityCardProps {
   isJoined: boolean;
   onJoin?: () => void;
   onInvite?: () => void;
+  isJoining?: boolean;
   index: number;
 }
 
-function CommunityCard({ community, isJoined, onJoin, onInvite, index }: CommunityCardProps) {
+function CommunityCard({ community, isJoined, onJoin, onInvite, isJoining, index }: CommunityCardProps) {
+  const emoji = getEmojiForCommunity(community.name);
+  
   return (
     <div
       className={cn(
@@ -277,25 +267,36 @@ function CommunityCard({ community, isJoined, onJoin, onInvite, index }: Communi
       style={{ animationDelay: `${index * 50}ms` }}
     >
       <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
-        {community.avatar}
+        {community.image_url ? (
+          <img src={community.image_url} alt={community.name} className="w-full h-full rounded-xl object-cover" />
+        ) : (
+          emoji
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <h3 className="font-medium text-foreground truncate">{community.name}</h3>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span className="flex items-center gap-1">
             <Users className="w-3 h-3" />
-            {community.memberCount}
+            {community.member_count || 1}
           </span>
-          {isJoined && (
+          {isJoined && community.yourRank && community.yourRank > 0 && (
             <span className="flex items-center gap-1 text-primary">
               <Crown className="w-3 h-3" />
               Rank #{community.yourRank}
             </span>
           )}
-          <span className="flex items-center gap-1">
-            🔥 {community.topStreak}d top
-          </span>
+          {(community.topStreak || 0) > 0 && (
+            <span className="flex items-center gap-1">
+              🔥 {community.topStreak}d top
+            </span>
+          )}
         </div>
+        {community.description && (
+          <p className="text-xs text-muted-foreground/70 truncate mt-0.5">
+            {community.description}
+          </p>
+        )}
       </div>
       {isJoined ? (
         <div className="flex items-center gap-2">
@@ -316,10 +317,17 @@ function CommunityCard({ community, isJoined, onJoin, onInvite, index }: Communi
         <Button
           size="sm"
           onClick={onJoin}
+          disabled={isJoining}
           className="gradient-primary text-primary-foreground shadow-glow"
         >
-          <UserPlus className="w-4 h-4 mr-1" />
-          Join
+          {isJoining ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <>
+              <UserPlus className="w-4 h-4 mr-1" />
+              Join
+            </>
+          )}
         </Button>
       )}
     </div>
