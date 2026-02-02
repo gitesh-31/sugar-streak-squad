@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { useFriends } from "./useFriends";
 
 export interface LeaderboardUser {
   id: string;
@@ -29,11 +30,14 @@ function calculateBadges(streak: number, rank: number): string[] {
 
 export function useLeaderboard(communityId?: string) {
   const { user } = useAuth();
+  const { acceptedFriendIds } = useFriends();
 
   return useQuery({
-    queryKey: ["leaderboard", communityId],
+    queryKey: ["leaderboard", communityId, acceptedFriendIds],
     queryFn: async (): Promise<LeaderboardUser[]> => {
-      let userIds: string[] | null = null;
+      if (!user) return [];
+
+      let userIds: string[] = [];
 
       // If community is specified, get only those members
       if (communityId) {
@@ -44,22 +48,20 @@ export function useLeaderboard(communityId?: string) {
 
         if (memError) throw memError;
         userIds = memberships?.map((m) => m.user_id) || [];
-        
-        if (userIds.length === 0) return [];
+      } else {
+        // For the main leaderboard, only show friends + self
+        userIds = [...acceptedFriendIds, user.id];
       }
 
-      // Get profiles (either all or filtered by community)
-      let query = supabase
+      if (userIds.length === 0) return [];
+
+      // Get profiles filtered by the user IDs
+      const { data: profiles, error } = await supabase
         .from("profiles")
         .select("*")
+        .in("user_id", userIds)
         .order("total_points", { ascending: false })
         .limit(50);
-
-      if (userIds) {
-        query = query.in("user_id", userIds);
-      }
-
-      const { data: profiles, error } = await query;
 
       if (error) throw error;
 
