@@ -28,7 +28,7 @@ export default function Index() {
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { profile, loading: profileLoading, refetchProfile } = useProfile();
-  const { entries, loading: entriesLoading, getTodayStats, refetch } = useFoodEntries();
+  const { entries, loading: entriesLoading, getTodayStats, refetch, updateEntry, deleteEntry } = useFoodEntries();
   const { data: leaderboard = [] } = useLeaderboard();
   const { calculateAndUpdateStreak } = useStreakCalculator();
 
@@ -237,6 +237,7 @@ export default function Index() {
                     {entries.map((entry) => (
                       <FoodCard
                         key={entry.id}
+                        id={entry.id}
                         name={entry.name}
                         time={format(new Date(entry.logged_at), "h:mm a")}
                         nutrition={{
@@ -246,6 +247,20 @@ export default function Index() {
                           sugar: entry.sugar,
                         }}
                         imageUrl={entry.image_url || undefined}
+                        onEdit={async (id, updates) => {
+                          await updateEntry(id, {
+                            name: updates.name,
+                            calories: updates.nutrition.calories,
+                            protein: updates.nutrition.protein,
+                            carbs: updates.nutrition.carbs,
+                            sugar: updates.nutrition.sugar,
+                          });
+                          toast.success("Food entry updated!");
+                        }}
+                        onDelete={async (id) => {
+                          await deleteEntry(id);
+                          toast.success("Food entry deleted!");
+                        }}
                       />
                     ))}
                   </div>

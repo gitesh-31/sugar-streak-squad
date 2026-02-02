@@ -1,5 +1,3 @@
-import { User } from "lucide-react";
-import { Button } from "./ui/button";
 import { StreakBadge } from "./StreakBadge";
 import { NotificationsPopover } from "./NotificationsPopover";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -18,11 +16,19 @@ export function Header({ userName, streak, points, avatarUrl, onProfileClick }: 
   return (
     <header className="sticky top-0 z-40 glass border-b border-border/50">
       <div className="container flex h-16 items-center justify-between px-4">
-        {/* Logo & Greeting */}
+        {/* Avatar & Greeting */}
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-primary">
-            <span className="text-lg font-bold text-primary-foreground">C</span>
-          </div>
+          <button
+            onClick={onProfileClick}
+            className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden ring-2 ring-primary/20 hover:ring-primary/50 transition-all"
+          >
+            <Avatar className="h-10 w-10 rounded-xl">
+              <AvatarImage src={avatarUrl || undefined} className="object-cover" />
+              <AvatarFallback className="rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-lg font-bold">
+                {firstName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </button>
           <div>
             <h1 className="font-display text-lg font-bold text-foreground">
               Hey, {firstName}! 👋
@@ -37,21 +43,8 @@ export function Header({ userName, streak, points, avatarUrl, onProfileClick }: 
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={onProfileClick}
-            className="relative"
-          >
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={avatarUrl || undefined} />
-              <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                {firstName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
+        {/* Notifications */}
+        <div className="flex items-center">
           <NotificationsPopover />
         </div>
       </div>

@@ -70,6 +70,23 @@ export function useFoodEntries() {
     return { error, data };
   };
 
+  const updateEntry = async (id: string, updates: Partial<FoodEntry>) => {
+    if (!user) return { error: new Error("Not authenticated") };
+
+    const { error } = await supabase
+      .from("food_entries")
+      .update(updates)
+      .eq("id", id);
+
+    if (!error) {
+      setEntries((prev) =>
+        prev.map((e) => (e.id === id ? { ...e, ...updates } : e))
+      );
+    }
+
+    return { error };
+  };
+
   const deleteEntry = async (id: string) => {
     if (!user) return { error: new Error("Not authenticated") };
 
@@ -100,7 +117,8 @@ export function useFoodEntries() {
   return { 
     entries, 
     loading, 
-    addEntry, 
+    addEntry,
+    updateEntry,
     deleteEntry, 
     refetch: fetchTodaysEntries,
     getTodayStats 
