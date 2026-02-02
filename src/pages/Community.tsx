@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Users, Plus, Crown, UserPlus, ChevronRight, Search } from "lucide-react";
+import { Users, Plus, Crown, UserPlus, ChevronRight, Search, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { InviteFriendsDialog } from "@/components/InviteFriendsDialog";
 
 interface Community {
   id: string;
@@ -78,6 +79,13 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newCommunityName, setNewCommunityName] = useState("");
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+
+  const handleOpenInvite = (community: Community) => {
+    setSelectedCommunity(community);
+    setInviteDialogOpen(true);
+  };
 
   const handleJoinCommunity = (community: Community) => {
     setAvailableCommunities((prev) => prev.filter((c) => c.id !== community.id));
@@ -152,6 +160,7 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
                   community={community}
                   isJoined
                   index={index}
+                  onInvite={() => handleOpenInvite(community)}
                 />
               ))}
             </div>
@@ -235,6 +244,16 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
             </div>
           </div>
         )}
+
+        {/* Invite Dialog */}
+        {selectedCommunity && (
+          <InviteFriendsDialog
+            open={inviteDialogOpen}
+            onOpenChange={setInviteDialogOpen}
+            communityId={selectedCommunity.id}
+            communityName={selectedCommunity.name}
+          />
+        )}
       </div>
     </div>
   );
@@ -244,10 +263,11 @@ interface CommunityCardProps {
   community: Community;
   isJoined: boolean;
   onJoin?: () => void;
+  onInvite?: () => void;
   index: number;
 }
 
-function CommunityCard({ community, isJoined, onJoin, index }: CommunityCardProps) {
+function CommunityCard({ community, isJoined, onJoin, onInvite, index }: CommunityCardProps) {
   return (
     <div
       className={cn(
@@ -278,7 +298,20 @@ function CommunityCard({ community, isJoined, onJoin, index }: CommunityCardProp
         </div>
       </div>
       {isJoined ? (
-        <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        <div className="flex items-center gap-2">
+          <Button
+            size="icon-sm"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInvite?.();
+            }}
+            className="text-primary hover:bg-primary/10"
+          >
+            <Share2 className="w-4 h-4" />
+          </Button>
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        </div>
       ) : (
         <Button
           size="sm"
