@@ -1,14 +1,18 @@
-import { Bell, Users } from "lucide-react";
+import { User } from "lucide-react";
 import { Button } from "./ui/button";
 import { StreakBadge } from "./StreakBadge";
+import { NotificationsPopover } from "./NotificationsPopover";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 interface HeaderProps {
   userName: string;
   streak: number;
   points: number;
+  avatarUrl?: string | null;
+  onProfileClick?: () => void;
 }
 
-export function Header({ userName, streak, points }: HeaderProps) {
+export function Header({ userName, streak, points, avatarUrl, onProfileClick }: HeaderProps) {
   const firstName = userName.split(" ")[0];
 
   return (
@@ -35,13 +39,20 @@ export function Header({ userName, streak, points }: HeaderProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
-            <Users className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={onProfileClick}
+            className="relative"
+          >
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={avatarUrl || undefined} />
+              <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                {firstName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
           </Button>
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
-          </Button>
+          <NotificationsPopover />
         </div>
       </div>
     </header>

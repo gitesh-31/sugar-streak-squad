@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { DailyStats } from "@/components/DailyStats";
@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useFoodEntries } from "@/hooks/useFoodEntries";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
+import { useStreakCalculator } from "@/hooks/useStreakCalculator";
 import { format } from "date-fns";
 import { Loader2, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,16 +27,26 @@ export default function Index() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const { user, signOut } = useAuth();
-  const { profile, loading: profileLoading, updateProfile } = useProfile();
+  const { profile, loading: profileLoading, refetchProfile } = useProfile();
   const { entries, loading: entriesLoading, getTodayStats, refetch } = useFoodEntries();
   const { data: leaderboard = [] } = useLeaderboard();
+  const { calculateAndUpdateStreak } = useStreakCalculator();
+
+  // Recalculate streak when entries change
+  useEffect(() => {
+    if (entries.length > 0) {
+      calculateAndUpdateStreak().then(() => refetchProfile());
+    }
+  }, [entries.length]);
 
   const todayStats = getTodayStats();
 
-  const handleRefetchProfile = () => {
-    // Force a refetch by calling updateProfile with empty updates
-    // The profile will be refetched on next render
-    window.location.reload();
+  const handleRefetchProfile = async () => {
+    await refetchProfile();
+  };
+
+  const handleProfileClick = () => {
+    setActiveNav("profile");
   };
 
   const handleScan = () => {
@@ -172,6 +183,8 @@ export default function Index() {
               userName={userName}
               streak={userStreak}
               points={userPoints}
+              avatarUrl={profile?.avatar_url}
+              onProfileClick={handleProfileClick}
             />
             <main className="container px-4 py-6 space-y-6">
               {/* Hero Streak Section */}
