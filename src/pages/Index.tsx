@@ -7,6 +7,7 @@ import { LeaderboardCard } from "@/components/LeaderboardCard";
 import { AddFoodButton } from "@/components/AddFoodButton";
 import { StreakBadge } from "@/components/StreakBadge";
 import { FoodScannerDialog } from "@/components/FoodScannerDialog";
+import { ManualFoodEntryDialog } from "@/components/ManualFoodEntryDialog";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import { CommunityPage } from "@/pages/Community";
 import { RanksPage } from "@/pages/Ranks";
@@ -25,6 +26,7 @@ type NavItem = "home" | "leaderboard" | "community" | "profile";
 export default function Index() {
   const [activeNav, setActiveNav] = useState<NavItem>("home");
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [manualEntryOpen, setManualEntryOpen] = useState(false);
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { profile, loading: profileLoading, refetchProfile } = useProfile();
@@ -60,9 +62,7 @@ export default function Index() {
   };
 
   const handleManual = () => {
-    toast.info("✏️ Manual entry coming soon!", {
-      description: "Add your own custom foods.",
-    });
+    setManualEntryOpen(true);
   };
 
   const handleSignOut = async () => {
@@ -289,6 +289,14 @@ export default function Index() {
                 setScannerOpen(open);
                 if (!open) refetch();
               }} 
+            />
+
+            <ManualFoodEntryDialog
+              open={manualEntryOpen}
+              onOpenChange={(open) => {
+                setManualEntryOpen(open);
+                if (!open) refetch();
+              }}
             />
           </>
         );

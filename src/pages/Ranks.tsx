@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Trophy, Crown, Medal, Star, Zap, Shield, Award, Flame, TrendingUp, TrendingDown, Minus, Loader2 } from "lucide-react";
+import { Trophy, Crown, Medal, Star, Zap, Shield, Award, Flame, TrendingUp, TrendingDown, Minus, Loader2, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StreakBadge } from "@/components/StreakBadge";
 import { useLeaderboard, type LeaderboardUser } from "@/hooks/useLeaderboard";
 import { useAuth } from "@/hooks/useAuth";
+import { useFriends } from "@/hooks/useFriends";
+import { Button } from "@/components/ui/button";
+import { AddFriendDialog } from "@/components/AddFriendDialog";
 
 interface Badge {
   id: string;
@@ -87,8 +90,10 @@ interface RanksPageProps {
 
 export function RanksPage({ onBack }: RanksPageProps) {
   const [activeTab, setActiveTab] = useState<Tab>("leaderboard");
+  const [addFriendOpen, setAddFriendOpen] = useState(false);
   const { user } = useAuth();
   const { data: leaderboard = [], isLoading } = useLeaderboard();
+  const { acceptedFriendIds } = useFriends();
   
   const currentUserId = user?.id;
 
@@ -119,14 +124,24 @@ export function RanksPage({ onBack }: RanksPageProps) {
     <div className="min-h-screen gradient-hero pb-24">
       <div className="container px-4 py-6 space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-            <Trophy className="w-6 h-6 text-primary" />
-            Rankings & Rewards
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Climb the ranks and earn exclusive badges
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
+              <Trophy className="w-6 h-6 text-primary" />
+              Rankings & Rewards
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Compete with friends and earn badges
+            </p>
+          </div>
+          <Button
+            onClick={() => setAddFriendOpen(true)}
+            size="sm"
+            className="gap-1"
+          >
+            <UserPlus className="h-4 w-4" />
+            Add Friend
+          </Button>
         </div>
 
         {/* Tabs */}
@@ -179,9 +194,21 @@ export function RanksPage({ onBack }: RanksPageProps) {
             ) : (
               <section className="relative overflow-hidden rounded-2xl gradient-streak p-6 text-center">
                 <Trophy className="w-12 h-12 mx-auto text-accent-foreground/70 mb-3" />
-                <p className="text-accent-foreground">
-                  Not enough users yet. Invite friends to compete!
+                <p className="text-accent-foreground mb-3">
+                  {acceptedFriendIds.length === 0 
+                    ? "Add friends to compete with them!" 
+                    : "Not enough users for a podium yet."}
                 </p>
+                {acceptedFriendIds.length === 0 && (
+                  <Button
+                    onClick={() => setAddFriendOpen(true)}
+                    variant="secondary"
+                    size="sm"
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    Add Friends
+                  </Button>
+                )}
               </section>
             )}
 
@@ -277,6 +304,8 @@ export function RanksPage({ onBack }: RanksPageProps) {
           </>
         )}
       </div>
+
+      <AddFriendDialog open={addFriendOpen} onOpenChange={setAddFriendOpen} />
     </div>
   );
 }
