@@ -7,34 +7,36 @@ import { LeaderboardCard } from "@/components/LeaderboardCard";
 import { AddFoodButton } from "@/components/AddFoodButton";
 import { StreakBadge } from "@/components/StreakBadge";
 import { FoodScannerDialog } from "@/components/FoodScannerDialog";
+import { ProfileEditDialog } from "@/components/ProfileEditDialog";
 import { CommunityPage } from "@/pages/Community";
 import { RanksPage } from "@/pages/Ranks";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { useFoodEntries } from "@/hooks/useFoodEntries";
+import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { format } from "date-fns";
-import { Loader2, LogOut } from "lucide-react";
+import { Loader2, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-// Mock leaderboard data (will be replaced with real data later)
-const mockLeaderboard = [
-  { id: "user-2", name: "Sarah Chen", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah", points: 3200, streak: 21, rank: 1, change: "same" as const },
-  { id: "user-3", name: "Mike Torres", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike", points: 2890, streak: 18, rank: 2, change: "up" as const },
-  { id: "user-4", name: "Emma Wilson", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma", points: 2100, streak: 9, rank: 4, change: "up" as const },
-  { id: "user-5", name: "James Lee", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=James", points: 1850, streak: 5, rank: 5, change: "down" as const },
-];
 
 type NavItem = "home" | "leaderboard" | "community" | "profile";
 
 export default function Index() {
   const [activeNav, setActiveNav] = useState<NavItem>("home");
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [profileEditOpen, setProfileEditOpen] = useState(false);
   const { user, signOut } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  const { profile, loading: profileLoading, updateProfile } = useProfile();
   const { entries, loading: entriesLoading, getTodayStats, refetch } = useFoodEntries();
+  const { data: leaderboard = [] } = useLeaderboard();
 
   const todayStats = getTodayStats();
+
+  const handleRefetchProfile = () => {
+    // Force a refetch by calling updateProfile with empty updates
+    // The profile will be refetched on next render
+    window.location.reload();
+  };
 
   const handleScan = () => {
     setScannerOpen(true);
@@ -69,20 +71,16 @@ export default function Index() {
   const userStreak = profile?.current_streak || 0;
   const userPoints = profile?.total_points || 0;
 
-  // Add current user to leaderboard
-  const leaderboard = [
-    ...mockLeaderboard.slice(0, 2),
-    { 
-      id: user?.id || "current", 
-      name: userName, 
-      avatar: profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`, 
-      points: userPoints, 
-      streak: userStreak, 
-      rank: 3, 
-      change: "same" as const 
-    },
-    ...mockLeaderboard.slice(2),
-  ];
+  // Format leaderboard for the LeaderboardCard (needs simpler format)
+  const formattedLeaderboard = leaderboard.slice(0, 5).map((u) => ({
+    id: u.user_id,
+    name: u.name,
+    avatar: u.avatar,
+    points: u.points,
+    streak: u.streak,
+    rank: u.rank,
+    change: u.change,
+  }));
 
   const renderContent = () => {
     switch (activeNav) {
@@ -94,20 +92,38 @@ export default function Index() {
         return (
           <div className="container px-4 py-6 space-y-6">
             <div className="rounded-2xl bg-card shadow-card p-6 text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-                <img
-                  src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`}
-                  alt="Profile"
-                  className="w-16 h-16 rounded-full"
-                />
-              </div>
+              <button
+                onClick={() => setProfileEditOpen(true)}
+                className="relative group mx-auto block"
+              >
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden ring-4 ring-border transition-opacity group-hover:opacity-75">
+                  <img
+                    src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-black/40 rounded-full p-2">
+                    <Settings className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+              </button>
               <h2 className="font-display text-xl font-bold text-foreground">
                 {userName}
               </h2>
+              {profile?.username && (
+                <p className="text-primary text-sm">@{profile.username}</p>
+              )}
               <p className="text-muted-foreground text-sm mt-1">
                 {user?.email}
               </p>
-              <div className="flex justify-center gap-4 mt-4">
+              {profile?.bio && (
+                <p className="text-muted-foreground text-sm mt-2 italic">
+                  "{profile.bio}"
+                </p>
+              )}
+              <div className="flex justify-center gap-6 mt-4">
                 <div className="text-center">
                   <p className="font-display text-2xl font-bold text-primary">{userStreak}</p>
                   <p className="text-xs text-muted-foreground">Day Streak</p>
@@ -116,17 +132,37 @@ export default function Index() {
                   <p className="font-display text-2xl font-bold text-primary">{userPoints}</p>
                   <p className="text-xs text-muted-foreground">Points</p>
                 </div>
+                <div className="text-center">
+                  <p className="font-display text-2xl font-bold text-primary">{profile?.longest_streak || 0}</p>
+                  <p className="text-xs text-muted-foreground">Best Streak</p>
+                </div>
               </div>
             </div>
 
             <Button 
+              onClick={() => setProfileEditOpen(true)}
+              className="w-full"
+              variant="outline"
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Edit Profile
+            </Button>
+
+            <Button 
               variant="outline" 
-              className="w-full" 
+              className="w-full text-destructive hover:text-destructive" 
               onClick={handleSignOut}
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
             </Button>
+
+            <ProfileEditDialog
+              open={profileEditOpen}
+              onOpenChange={setProfileEditOpen}
+              profile={profile}
+              onUpdate={handleRefetchProfile}
+            />
           </div>
         );
       default:
@@ -210,7 +246,7 @@ export default function Index() {
               </section>
 
               {/* Leaderboard Preview */}
-              <LeaderboardCard users={leaderboard} currentUserId={user?.id || ""} />
+              <LeaderboardCard users={formattedLeaderboard} currentUserId={user?.id || ""} />
             </main>
 
             <AddFoodButton

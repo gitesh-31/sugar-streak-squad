@@ -6,7 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { InviteFriendsDialog } from "@/components/InviteFriendsDialog";
+import { CommunityDetailDialog } from "@/components/CommunityDetailDialog";
 import { useCommunities, type Community } from "@/hooks/useCommunities";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 // Emoji avatars for communities
 const COMMUNITY_EMOJIS = ["🏋️", "🏢", "👨‍👩‍👧‍👦", "🥑", "🏃", "🥗", "⭐", "🔥", "💪", "🎯", "🏆", "❤️"];
@@ -22,12 +25,14 @@ interface CommunityPageProps {
 }
 
 export function CommunityPage({ onBack }: CommunityPageProps) {
+  const { user } = useAuth();
   const {
     joinedCommunities,
     availableCommunities,
     isLoading,
     createCommunity,
     joinCommunity,
+    leaveCommunity,
   } = useCommunities();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,11 +40,28 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
   const [newCommunityName, setNewCommunityName] = useState("");
   const [newCommunityDescription, setNewCommunityDescription] = useState("");
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
 
   const handleOpenInvite = (community: Community) => {
     setSelectedCommunity(community);
     setInviteDialogOpen(true);
+  };
+
+  const handleOpenDetail = (community: Community) => {
+    setSelectedCommunity(community);
+    setDetailDialogOpen(true);
+  };
+
+  const handleLeaveCommunity = () => {
+    if (selectedCommunity) {
+      leaveCommunity.mutate(selectedCommunity.id, {
+        onSuccess: () => {
+          setDetailDialogOpen(false);
+          setSelectedCommunity(null);
+        },
+      });
+    }
   };
 
   const handleJoinCommunity = (community: Community) => {
@@ -115,6 +137,7 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
                   isJoined
                   index={index}
                   onInvite={() => handleOpenInvite(community)}
+                  onClick={() => handleOpenDetail(community)}
                 />
               ))}
             </div>
@@ -241,6 +264,18 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
             communityName={selectedCommunity.name}
           />
         )}
+
+        {/* Detail Dialog */}
+        {selectedCommunity && (
+          <CommunityDetailDialog
+            open={detailDialogOpen}
+            onOpenChange={setDetailDialogOpen}
+            communityId={selectedCommunity.id}
+            communityName={selectedCommunity.name}
+            onLeave={handleLeaveCommunity}
+            isCreator={selectedCommunity.created_by === user?.id}
+          />
+        )}
       </div>
     </div>
   );
@@ -251,20 +286,22 @@ interface CommunityCardProps {
   isJoined: boolean;
   onJoin?: () => void;
   onInvite?: () => void;
+  onClick?: () => void;
   isJoining?: boolean;
   index: number;
 }
 
-function CommunityCard({ community, isJoined, onJoin, onInvite, isJoining, index }: CommunityCardProps) {
+function CommunityCard({ community, isJoined, onJoin, onInvite, onClick, isJoining, index }: CommunityCardProps) {
   const emoji = getEmojiForCommunity(community.name);
   
   return (
     <div
       className={cn(
-        "flex items-center gap-4 p-4 rounded-2xl bg-card shadow-card transition-all hover:shadow-lg animate-slide-up",
+        "flex items-center gap-4 p-4 rounded-2xl bg-card shadow-card transition-all hover:shadow-lg animate-slide-up cursor-pointer",
         isJoined && "ring-1 ring-primary/20"
       )}
       style={{ animationDelay: `${index * 50}ms` }}
+      onClick={onClick}
     >
       <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-2xl">
         {community.image_url ? (

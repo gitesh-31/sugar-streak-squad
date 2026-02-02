@@ -1,18 +1,9 @@
 import { useState } from "react";
-import { Trophy, Crown, Medal, Star, Zap, Shield, Award, Flame, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Trophy, Crown, Medal, Star, Zap, Shield, Award, Flame, TrendingUp, TrendingDown, Minus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StreakBadge } from "@/components/StreakBadge";
-
-interface RankUser {
-  id: string;
-  name: string;
-  avatar: string;
-  points: number;
-  streak: number;
-  rank: number;
-  change: "up" | "down" | "same";
-  badges: string[];
-}
+import { useLeaderboard, type LeaderboardUser } from "@/hooks/useLeaderboard";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Badge {
   id: string;
@@ -24,17 +15,6 @@ interface Badge {
   requirement: string;
   unlocked: boolean;
 }
-
-const mockLeaderboard: RankUser[] = [
-  { id: "user-2", name: "Sarah Chen", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah", points: 3200, streak: 21, rank: 1, change: "same", badges: ["elite", "warrior", "champion"] },
-  { id: "user-3", name: "Mike Torres", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike", points: 2890, streak: 18, rank: 2, change: "up", badges: ["warrior", "dedicated"] },
-  { id: "user-1", name: "Alex Johnson", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex", points: 2450, streak: 12, rank: 3, change: "down", badges: ["dedicated", "starter"] },
-  { id: "user-4", name: "Emma Wilson", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Emma", points: 2100, streak: 9, rank: 4, change: "up", badges: ["starter"] },
-  { id: "user-5", name: "James Lee", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=James", points: 1850, streak: 5, rank: 5, change: "down", badges: ["starter"] },
-  { id: "user-6", name: "Olivia Brown", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Olivia", points: 1720, streak: 7, rank: 6, change: "same", badges: ["starter"] },
-  { id: "user-7", name: "Liam Davis", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Liam", points: 1580, streak: 4, rank: 7, change: "up", badges: [] },
-  { id: "user-8", name: "Sophia Miller", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sophia", points: 1420, streak: 3, rank: 8, change: "down", badges: [] },
-];
 
 const allBadges: Badge[] = [
   {
@@ -107,13 +87,33 @@ interface RanksPageProps {
 
 export function RanksPage({ onBack }: RanksPageProps) {
   const [activeTab, setActiveTab] = useState<Tab>("leaderboard");
-  const currentUserId = "user-1";
+  const { user } = useAuth();
+  const { data: leaderboard = [], isLoading } = useLeaderboard();
+  
+  const currentUserId = user?.id;
 
-  // Calculate user's unlocked badges based on streak
+  // Find current user's data for badges
+  const currentUserData = leaderboard.find((u) => u.user_id === currentUserId);
+
+  // Calculate user's unlocked badges based on their streak
   const userBadges = allBadges.map((badge) => ({
     ...badge,
-    unlocked: mockLeaderboard.find((u) => u.id === currentUserId)?.badges.includes(badge.id) || false,
+    unlocked: currentUserData?.badges.includes(badge.id) || false,
   }));
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen gradient-hero pb-24 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
+          <p className="text-muted-foreground">Loading rankings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Get top 3 for podium
+  const top3 = leaderboard.slice(0, 3);
 
   return (
     <div className="min-h-screen gradient-hero pb-24">
@@ -160,21 +160,30 @@ export function RanksPage({ onBack }: RanksPageProps) {
         {activeTab === "leaderboard" ? (
           <>
             {/* Top 3 Podium */}
-            <section className="relative overflow-hidden rounded-2xl gradient-streak p-6">
-              <h2 className="font-display text-lg font-bold text-accent-foreground mb-6 text-center">
-                🏆 Today's Champions
-              </h2>
-              <div className="flex items-end justify-center gap-4">
-                {/* 2nd Place */}
-                <PodiumPlace user={mockLeaderboard[1]} place={2} />
-                {/* 1st Place */}
-                <PodiumPlace user={mockLeaderboard[0]} place={1} />
-                {/* 3rd Place */}
-                <PodiumPlace user={mockLeaderboard[2]} place={3} currentUserId={currentUserId} />
-              </div>
-              <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
-              <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
-            </section>
+            {top3.length >= 3 ? (
+              <section className="relative overflow-hidden rounded-2xl gradient-streak p-6">
+                <h2 className="font-display text-lg font-bold text-accent-foreground mb-6 text-center">
+                  🏆 Top Champions
+                </h2>
+                <div className="flex items-end justify-center gap-4">
+                  {/* 2nd Place */}
+                  <PodiumPlace user={top3[1]} place={2} currentUserId={currentUserId} />
+                  {/* 1st Place */}
+                  <PodiumPlace user={top3[0]} place={1} currentUserId={currentUserId} />
+                  {/* 3rd Place */}
+                  <PodiumPlace user={top3[2]} place={3} currentUserId={currentUserId} />
+                </div>
+                <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-3xl" />
+                <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-white/10 blur-2xl" />
+              </section>
+            ) : (
+              <section className="relative overflow-hidden rounded-2xl gradient-streak p-6 text-center">
+                <Trophy className="w-12 h-12 mx-auto text-accent-foreground/70 mb-3" />
+                <p className="text-accent-foreground">
+                  Not enough users yet. Invite friends to compete!
+                </p>
+              </section>
+            )}
 
             {/* Full Leaderboard */}
             <section className="rounded-2xl bg-card shadow-card overflow-hidden">
@@ -183,16 +192,23 @@ export function RanksPage({ onBack }: RanksPageProps) {
                   Full Rankings
                 </h2>
               </div>
-              <div className="divide-y divide-border">
-                {mockLeaderboard.map((user, index) => (
-                  <LeaderboardRow
-                    key={user.id}
-                    user={user}
-                    isCurrentUser={user.id === currentUserId}
-                    index={index}
-                  />
-                ))}
-              </div>
+              {leaderboard.length > 0 ? (
+                <div className="divide-y divide-border">
+                  {leaderboard.map((user, index) => (
+                    <LeaderboardRow
+                      key={user.id}
+                      user={user}
+                      isCurrentUser={user.user_id === currentUserId}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center">
+                  <Trophy className="w-12 h-12 mx-auto text-muted-foreground/50 mb-3" />
+                  <p className="text-muted-foreground">No rankings yet. Start logging food!</p>
+                </div>
+              )}
             </section>
 
             {/* Points Explanation */}
@@ -266,7 +282,7 @@ export function RanksPage({ onBack }: RanksPageProps) {
 }
 
 interface PodiumPlaceProps {
-  user: RankUser;
+  user: LeaderboardUser;
   place: 1 | 2 | 3;
   currentUserId?: string;
 }
@@ -294,7 +310,7 @@ function PodiumPlace({ user, place, currentUserId }: PodiumPlaceProps) {
       </div>
       <p className={cn(
         "font-medium text-accent-foreground text-sm truncate max-w-20",
-        user.id === currentUserId && "text-primary"
+        user.user_id === currentUserId && "text-primary"
       )}>
         {user.name.split(" ")[0]}
       </p>
@@ -305,7 +321,7 @@ function PodiumPlace({ user, place, currentUserId }: PodiumPlaceProps) {
 }
 
 interface LeaderboardRowProps {
-  user: RankUser;
+  user: LeaderboardUser;
   isCurrentUser: boolean;
   index: number;
 }
