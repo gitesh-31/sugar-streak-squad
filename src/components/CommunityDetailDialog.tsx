@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Users, Crown, Medal, LogOut, Loader2, Flame } from "lucide-react";
+import { Users, Crown, Medal, LogOut, Loader2, Flame, UserPlus, Check, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useFriends } from "@/hooks/useFriends";
+import { isUserActive } from "@/hooks/usePresence";
 import { cn } from "@/lib/utils";
 import { StreakBadge } from "@/components/StreakBadge";
 
@@ -15,6 +17,7 @@ interface Member {
   current_streak: number | null;
   total_points: number | null;
   joined_at: string;
+  last_active: string | null;
 }
 
 interface CommunityDetailDialogProps {
@@ -35,6 +38,7 @@ export function CommunityDetailDialog({
   isCreator,
 }: CommunityDetailDialogProps) {
   const { user } = useAuth();
+  const { getFriendStatus, sendRequest, isSending } = useFriends();
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -61,7 +65,7 @@ export function CommunityDetailDialog({
         // Get profiles for all members
         const { data: profiles, error: profError } = await supabase
           .from("profiles")
-          .select("user_id, display_name, username, avatar_url, current_streak, total_points")
+          .select("user_id, display_name, username, avatar_url, current_streak, total_points, last_active")
           .in("user_id", userIds);
 
         if (profError) throw profError;
@@ -77,6 +81,7 @@ export function CommunityDetailDialog({
             current_streak: profile?.current_streak || 0,
             total_points: profile?.total_points || 0,
             joined_at: membership.joined_at,
+            last_active: profile?.last_active || null,
           };
         });
 
@@ -129,6 +134,8 @@ export function CommunityDetailDialog({
                 const isCurrentUser = member.user_id === user?.id;
                 const displayName = member.display_name || member.username || "Anonymous";
                 const avatarUrl = member.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
+                const isActive = isUserActive(member.last_active);
+                const friendStatus = getFriendStatus(member.user_id);
                 
                 return (
                   <div
@@ -147,16 +154,14 @@ export function CommunityDetailDialog({
                         alt={displayName}
                         className="h-10 w-10 rounded-full object-cover ring-2 ring-border"
                       />
-                      {index < 3 && (
-                        <div
-                          className={cn(
-                            "absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-card",
-                            index === 0 && "bg-rank-gold",
-                            index === 1 && "bg-rank-silver",
-                            index === 2 && "bg-rank-bronze"
-                          )}
-                        />
-                      )}
+                      {/* Online/Offline status indicator */}
+                      <div
+                        className={cn(
+                          "absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-card",
+                          isActive ? "bg-green-500" : "bg-red-400"
+                        )}
+                        title={isActive ? "Active now" : "Offline"}
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className={cn(
@@ -173,6 +178,35 @@ export function CommunityDetailDialog({
                         </span>
                       </div>
                     </div>
+                    
+                    {/* Add Friend Button - only show for non-self members */}
+                    {!isCurrentUser && (
+                      <div className="flex items-center gap-1">
+                        {friendStatus === "none" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                            onClick={() => sendRequest(member.user_id)}
+                            disabled={isSending}
+                            title="Add Friend"
+                          >
+                            <UserPlus className="h-4 w-4 text-primary" />
+                          </Button>
+                        )}
+                        {friendStatus === "pending_sent" && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground" title="Request Sent">
+                            <Clock className="h-3.5 w-3.5" />
+                          </div>
+                        )}
+                        {friendStatus === "accepted" && (
+                          <div className="flex items-center gap-1 text-xs text-green-500" title="Friends">
+                            <Check className="h-4 w-4" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     {index < 3 && (
                       <Flame className={cn(
                         "w-4 h-4",

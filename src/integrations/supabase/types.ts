@@ -186,6 +186,7 @@ export type Database = {
           current_streak: number | null
           display_name: string | null
           id: string
+          last_active: string | null
           longest_streak: number | null
           total_points: number | null
           updated_at: string
@@ -199,6 +200,7 @@ export type Database = {
           current_streak?: number | null
           display_name?: string | null
           id?: string
+          last_active?: string | null
           longest_streak?: number | null
           total_points?: number | null
           updated_at?: string
@@ -212,6 +214,7 @@ export type Database = {
           current_streak?: number | null
           display_name?: string | null
           id?: string
+          last_active?: string | null
           longest_streak?: number | null
           total_points?: number | null
           updated_at?: string
