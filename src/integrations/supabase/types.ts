@@ -182,12 +182,16 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          calorie_goal: number | null
+          carbs_goal: number | null
           created_at: string
           current_streak: number | null
           display_name: string | null
           id: string
           last_active: string | null
           longest_streak: number | null
+          protein_goal: number | null
+          sugar_limit: number | null
           total_points: number | null
           updated_at: string
           user_id: string
@@ -196,12 +200,16 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          calorie_goal?: number | null
+          carbs_goal?: number | null
           created_at?: string
           current_streak?: number | null
           display_name?: string | null
           id?: string
           last_active?: string | null
           longest_streak?: number | null
+          protein_goal?: number | null
+          sugar_limit?: number | null
           total_points?: number | null
           updated_at?: string
           user_id: string
@@ -210,12 +218,16 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          calorie_goal?: number | null
+          carbs_goal?: number | null
           created_at?: string
           current_streak?: number | null
           display_name?: string | null
           id?: string
           last_active?: string | null
           longest_streak?: number | null
+          protein_goal?: number | null
+          sugar_limit?: number | null
           total_points?: number | null
           updated_at?: string
           user_id?: string

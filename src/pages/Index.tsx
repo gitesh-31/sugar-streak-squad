@@ -9,17 +9,20 @@ import { StreakBadge } from "@/components/StreakBadge";
 import { FoodScannerDialog } from "@/components/FoodScannerDialog";
 import { ManualFoodEntryDialog } from "@/components/ManualFoodEntryDialog";
 import { ProfileEditDialog } from "@/components/ProfileEditDialog";
+import { NutritionHistoryChart } from "@/components/NutritionHistoryChart";
+import { NutritionGoalsDialog } from "@/components/NutritionGoalsDialog";
 import { CommunityPage } from "@/pages/Community";
 import { RanksPage } from "@/pages/Ranks";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useFoodEntries } from "@/hooks/useFoodEntries";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { useStreakCalculator } from "@/hooks/useStreakCalculator";
 import { useDailyLogs } from "@/hooks/useDailyLogs";
 import { format } from "date-fns";
-import { Loader2, LogOut, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, LogOut, Settings, ChevronDown, ChevronUp, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type NavItem = "home" | "leaderboard" | "community" | "profile";
@@ -30,6 +33,7 @@ export default function Index() {
   const [manualEntryOpen, setManualEntryOpen] = useState(false);
   const [profileEditOpen, setProfileEditOpen] = useState(false);
   const [showYesterdayStats, setShowYesterdayStats] = useState(false);
+  const [goalsDialogOpen, setGoalsDialogOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { profile, loading: profileLoading, refetchProfile } = useProfile();
   const { entries, loading: entriesLoading, getTodayStats, refetch, updateEntry, deleteEntry } = useFoodEntries();
@@ -87,7 +91,24 @@ export default function Index() {
   const userName = profile?.display_name || user?.email?.split("@")[0] || "User";
   const userStreak = profile?.current_streak || 0;
   const userPoints = profile?.total_points || 0;
+  
+  // Nutrition goals with defaults
+  const nutritionGoals = {
+    calorie_goal: profile?.calorie_goal ?? 2000,
+    protein_goal: profile?.protein_goal ?? 120,
+    carbs_goal: profile?.carbs_goal ?? 250,
+    sugar_limit: profile?.sugar_limit ?? 25,
+  };
 
+  const handleSaveGoals = async (goals: typeof nutritionGoals) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update(goals)
+      .eq("user_id", user?.id);
+    
+    if (error) throw error;
+    await refetchProfile();
+  };
   // Format leaderboard for the LeaderboardCard (needs simpler format)
   const formattedLeaderboard = leaderboard.slice(0, 5).map((u) => ({
     id: u.user_id,
@@ -157,6 +178,15 @@ export default function Index() {
             </div>
 
             <Button 
+              onClick={() => setGoalsDialogOpen(true)}
+              className="w-full"
+              variant="outline"
+            >
+              <Target className="h-4 w-4 mr-2" />
+              Nutrition Goals
+            </Button>
+
+            <Button 
               onClick={() => setProfileEditOpen(true)}
               className="w-full"
               variant="outline"
@@ -179,6 +209,13 @@ export default function Index() {
               onOpenChange={setProfileEditOpen}
               profile={profile}
               onUpdate={handleRefetchProfile}
+            />
+
+            <NutritionGoalsDialog
+              open={goalsDialogOpen}
+              onOpenChange={setGoalsDialogOpen}
+              currentGoals={nutritionGoals}
+              onSave={handleSaveGoals}
             />
           </div>
         );
@@ -218,10 +255,10 @@ export default function Index() {
 
               {/* Daily Stats */}
               <DailyStats 
-                calories={{ current: todayStats.calories, goal: 2000 }}
-                protein={{ current: todayStats.protein, goal: 120 }}
-                carbs={{ current: todayStats.carbs, goal: 250 }}
-                sugar={{ current: todayStats.sugar, limit: 25 }}
+                calories={{ current: todayStats.calories, goal: nutritionGoals.calorie_goal }}
+                protein={{ current: todayStats.protein, goal: nutritionGoals.protein_goal }}
+                carbs={{ current: todayStats.carbs, goal: nutritionGoals.carbs_goal }}
+                sugar={{ current: todayStats.sugar, limit: nutritionGoals.sugar_limit }}
               />
 
               {/* Yesterday's Stats - Collapsible */}
@@ -279,6 +316,12 @@ export default function Index() {
                   )}
                 </section>
               )}
+
+              {/* Nutrition History Chart */}
+              <NutritionHistoryChart 
+                calorieGoal={nutritionGoals.calorie_goal}
+                sugarLimit={nutritionGoals.sugar_limit}
+              />
 
               {/* Today's Food Log */}
               <section>
