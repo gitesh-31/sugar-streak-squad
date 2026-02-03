@@ -17,8 +17,9 @@ import { useProfile } from "@/hooks/useProfile";
 import { useFoodEntries } from "@/hooks/useFoodEntries";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { useStreakCalculator } from "@/hooks/useStreakCalculator";
+import { useDailyLogs } from "@/hooks/useDailyLogs";
 import { format } from "date-fns";
-import { Loader2, LogOut, Settings } from "lucide-react";
+import { Loader2, LogOut, Settings, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type NavItem = "home" | "leaderboard" | "community" | "profile";
@@ -28,18 +29,23 @@ export default function Index() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [manualEntryOpen, setManualEntryOpen] = useState(false);
   const [profileEditOpen, setProfileEditOpen] = useState(false);
+  const [showYesterdayStats, setShowYesterdayStats] = useState(false);
   const { user, signOut } = useAuth();
   const { profile, loading: profileLoading, refetchProfile } = useProfile();
   const { entries, loading: entriesLoading, getTodayStats, refetch, updateEntry, deleteEntry } = useFoodEntries();
   const { data: leaderboard = [] } = useLeaderboard();
   const { calculateAndUpdateStreak } = useStreakCalculator();
+  const { yesterdayLog, updateTodayLog, refetch: refetchDailyLogs } = useDailyLogs();
 
-  // Recalculate streak when entries change
+  // Recalculate streak and update daily log when entries change
   useEffect(() => {
+    const stats = getTodayStats();
+    updateTodayLog(stats);
+    
     if (entries.length > 0) {
       calculateAndUpdateStreak().then(() => refetchProfile());
     }
-  }, [entries.length]);
+  }, [entries.length, entries]);
 
   const todayStats = getTodayStats();
 
@@ -217,6 +223,62 @@ export default function Index() {
                 carbs={{ current: todayStats.carbs, goal: 250 }}
                 sugar={{ current: todayStats.sugar, limit: 25 }}
               />
+
+              {/* Yesterday's Stats - Collapsible */}
+              {yesterdayLog && (
+                <section className="rounded-2xl bg-card/50 shadow-card overflow-hidden">
+                  <button
+                    onClick={() => setShowYesterdayStats(!showYesterdayStats)}
+                    className="w-full flex items-center justify-between p-4 hover:bg-card/70 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-display text-sm font-medium text-foreground">
+                        Yesterday's Summary
+                      </span>
+                      {yesterdayLog.is_sugar_free && (
+                        <span className="text-xs bg-success/20 text-success px-2 py-0.5 rounded-full">
+                          🎉 Sugar-Free!
+                        </span>
+                      )}
+                    </div>
+                    {showYesterdayStats ? (
+                      <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </button>
+                  {showYesterdayStats && (
+                    <div className="px-4 pb-4">
+                      <div className="grid grid-cols-4 gap-3 text-center">
+                        <div className="rounded-lg bg-background/50 p-3">
+                          <p className="font-display text-lg font-bold text-foreground">
+                            {yesterdayLog.total_calories || 0}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Calories</p>
+                        </div>
+                        <div className="rounded-lg bg-background/50 p-3">
+                          <p className="font-display text-lg font-bold text-foreground">
+                            {yesterdayLog.total_protein || 0}g
+                          </p>
+                          <p className="text-xs text-muted-foreground">Protein</p>
+                        </div>
+                        <div className="rounded-lg bg-background/50 p-3">
+                          <p className="font-display text-lg font-bold text-foreground">
+                            {yesterdayLog.total_carbs || 0}g
+                          </p>
+                          <p className="text-xs text-muted-foreground">Carbs</p>
+                        </div>
+                        <div className="rounded-lg bg-background/50 p-3">
+                          <p className={`font-display text-lg font-bold ${(yesterdayLog.total_sugar || 0) > 0 ? 'text-warning' : 'text-success'}`}>
+                            {yesterdayLog.total_sugar || 0}g
+                          </p>
+                          <p className="text-xs text-muted-foreground">Sugar</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
+              )}
 
               {/* Today's Food Log */}
               <section>
