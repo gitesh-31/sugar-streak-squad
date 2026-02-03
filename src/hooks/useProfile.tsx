@@ -12,6 +12,10 @@ export interface Profile {
   total_points: number;
   current_streak: number;
   longest_streak: number;
+  calorie_goal: number;
+  protein_goal: number;
+  carbs_goal: number;
+  sugar_limit: number;
   created_at: string;
   updated_at: string;
 }
