@@ -73,7 +73,9 @@ export function useDailyLogs() {
       if (!user) return;
 
       const today = formatDateString(new Date());
-      const isSugarFree = stats.sugar === 0;
+      // Sugar-free means under the limit (25g default), not zero
+      const sugarLimit = 25;
+      const isSugarFree = stats.sugar <= sugarLimit;
       const pointsEarned = isSugarFree ? 10 : 0;
 
       // Check if log exists for today
