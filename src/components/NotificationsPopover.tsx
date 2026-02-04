@@ -1,4 +1,4 @@
-import { Bell } from "lucide-react";
+import { Bell, Check, X } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   Popover,
@@ -10,6 +10,8 @@ import { ScrollArea } from "./ui/scroll-area";
 import { useNotifications, Notification } from "@/hooks/useNotifications";
 import { formatDistanceToNow } from "date-fns";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useState } from "react";
 
 function NotificationIcon({ type }: { type: Notification["type"] }) {
   switch (type) {
@@ -21,13 +23,32 @@ function NotificationIcon({ type }: { type: Notification["type"] }) {
       return <span className="text-lg">🍽️</span>;
     case "member_joined":
       return <span className="text-lg">👋</span>;
+    case "friend_request":
+      return <span className="text-lg">👤</span>;
     default:
       return <span className="text-lg">📢</span>;
   }
 }
 
 export function NotificationsPopover() {
-  const { notifications, loading, unreadCount, markAllAsRead } = useNotifications();
+  const { notifications, loading, unreadCount, markAllAsRead, handleFriendAction } = useNotifications();
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+
+  const onFriendAction = async (friendshipId: string, action: "accept" | "reject") => {
+    setProcessingIds((prev) => new Set(prev).add(friendshipId));
+    try {
+      await handleFriendAction(friendshipId, action);
+      toast.success(action === "accept" ? "Friend request accepted!" : "Friend request declined");
+    } catch {
+      toast.error("Failed to process request");
+    } finally {
+      setProcessingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(friendshipId);
+        return next;
+      });
+    }
+  };
 
   return (
     <Popover onOpenChange={(open) => open && markAllAsRead()}>
@@ -45,7 +66,7 @@ export function NotificationsPopover() {
         <div className="border-b border-border p-3">
           <h4 className="font-display font-semibold text-foreground">Notifications</h4>
           <p className="text-xs text-muted-foreground">
-            Activity from your communities
+            Friend requests & community activity
           </p>
         </div>
 
@@ -61,7 +82,7 @@ export function NotificationsPopover() {
                 No notifications yet
               </p>
               <p className="text-xs text-muted-foreground">
-                Join communities to see activity!
+                Add friends or join communities!
               </p>
             </div>
           ) : (
@@ -89,6 +110,45 @@ export function NotificationsPopover() {
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
                       {notification.message}
                     </p>
+                    
+                    {/* Friend request actions */}
+                    {notification.type === "friend_request" && notification.friendshipId && (
+                      <div className="flex gap-2 mt-2">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="h-7 px-2 text-xs"
+                          disabled={processingIds.has(notification.friendshipId)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onFriendAction(notification.friendshipId!, "accept");
+                          }}
+                        >
+                          {processingIds.has(notification.friendshipId) ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <>
+                              <Check className="h-3 w-3 mr-1" />
+                              Accept
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          disabled={processingIds.has(notification.friendshipId)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onFriendAction(notification.friendshipId!, "reject");
+                          }}
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          Decline
+                        </Button>
+                      </div>
+                    )}
+                    
                     <p className="text-[10px] text-muted-foreground/70 mt-1">
                       {formatDistanceToNow(new Date(notification.created_at), {
                         addSuffix: true,
