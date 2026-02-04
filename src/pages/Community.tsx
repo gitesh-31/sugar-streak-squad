@@ -163,7 +163,7 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
           </section>
         )}
 
-        {/* Discover Communities */}
+        {/* Discover Communities - Only show when searching */}
         <section>
           <h2 className="font-display text-lg font-semibold text-foreground mb-3">
             Discover Communities
@@ -177,27 +177,39 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
               className="pl-10"
             />
           </div>
-          {filteredAvailable.length > 0 ? (
-            <div className="space-y-3">
-              {filteredAvailable.map((community, index) => (
-                <CommunityCard
-                  key={community.id}
-                  community={community}
-                  isJoined={false}
-                  onJoin={() => handleJoinCommunity(community)}
-                  isJoining={joinCommunity.isPending}
-                  index={index}
-                />
-              ))}
-            </div>
+          {searchQuery.trim() ? (
+            filteredAvailable.length > 0 ? (
+              <div className="space-y-3">
+                {filteredAvailable.map((community, index) => (
+                  <CommunityCard
+                    key={community.id}
+                    community={community}
+                    isJoined={false}
+                    onJoin={() => handleJoinCommunity(community)}
+                    isJoining={joinCommunity.isPending}
+                    index={index}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-card/50 p-6 text-center">
+                <Search className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                <p className="text-muted-foreground">
+                  No communities match your search
+                </p>
+                <p className="text-sm text-muted-foreground/70 mt-1">
+                  Try a different name or create your own!
+                </p>
+              </div>
+            )
           ) : (
             <div className="rounded-2xl bg-card/50 p-6 text-center">
               <Search className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
               <p className="text-muted-foreground">
-                {searchQuery ? "No communities match your search" : "No communities to discover yet"}
+                Search to discover communities
               </p>
               <p className="text-sm text-muted-foreground/70 mt-1">
-                Be the first to create one!
+                Type a community name to find and join
               </p>
             </div>
           )}
