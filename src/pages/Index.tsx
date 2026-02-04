@@ -13,6 +13,7 @@ import { NutritionHistoryChart } from "@/components/NutritionHistoryChart";
 import { NutritionGoalsDialog } from "@/components/NutritionGoalsDialog";
 import { CommunityPage } from "@/pages/Community";
 import { RanksPage } from "@/pages/Ranks";
+import { FriendsPage } from "@/pages/Friends";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +26,7 @@ import { format } from "date-fns";
 import { Loader2, LogOut, Settings, ChevronDown, ChevronUp, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-type NavItem = "home" | "leaderboard" | "community" | "profile";
+type NavItem = "home" | "leaderboard" | "friends" | "community" | "profile";
 
 export default function Index() {
   const [activeNav, setActiveNav] = useState<NavItem>("home");
@@ -124,6 +125,8 @@ export default function Index() {
     switch (activeNav) {
       case "community":
         return <CommunityPage />;
+      case "friends":
+        return <FriendsPage />;
       case "leaderboard":
         return <RanksPage />;
       case "profile":
