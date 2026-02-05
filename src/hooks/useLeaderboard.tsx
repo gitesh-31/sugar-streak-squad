@@ -49,11 +49,21 @@ export function useLeaderboard(communityId?: string) {
         if (memError) throw memError;
         userIds = memberships?.map((m) => m.user_id) || [];
       } else {
-        // For the main leaderboard, only show friends + self
-        userIds = [...acceptedFriendIds, user.id];
+        // For the main leaderboard, only show accepted friends + self
+        // If no friends, only show current user
+        userIds = [user.id];
+        if (acceptedFriendIds && acceptedFriendIds.length > 0) {
+          userIds = [...acceptedFriendIds, user.id];
+        }
       }
 
-      if (userIds.length === 0) return [];
+      // Always have at least the current user
+      if (userIds.length === 0) {
+        userIds = [user.id];
+      }
+
+      // Deduplicate user IDs
+      userIds = [...new Set(userIds)];
 
       // Get profiles filtered by the user IDs
       const { data: profiles, error } = await supabase

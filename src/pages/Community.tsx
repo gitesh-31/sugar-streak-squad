@@ -28,7 +28,9 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
   const { user } = useAuth();
   const {
     joinedCommunities,
-    availableCommunities,
+    searchCommunities,
+    searchResults,
+    isSearching,
     isLoading,
     createCommunity,
     joinCommunity,
@@ -42,6 +44,14 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+
+  // Debounced search
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      await searchCommunities(query);
+    }
+  };
 
   const handleOpenInvite = (community: Community) => {
     setSelectedCommunity(community);
@@ -83,10 +93,6 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
       }
     );
   };
-
-  const filteredAvailable = availableCommunities.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   if (isLoading) {
     return (
@@ -173,19 +179,24 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
             <Input
               placeholder="Search communities..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="pl-10"
             />
           </div>
           {searchQuery.trim() ? (
-            filteredAvailable.length > 0 ? (
+            isSearching ? (
+              <div className="rounded-2xl bg-card/50 p-6 text-center">
+                <Loader2 className="w-8 h-8 mx-auto mb-2 text-primary animate-spin" />
+                <p className="text-muted-foreground">Searching...</p>
+              </div>
+            ) : searchResults.length > 0 ? (
               <div className="space-y-3">
-                {filteredAvailable.map((community, index) => (
+                {searchResults.map((community, index) => (
                   <CommunityCard
                     key={community.id}
-                    community={community}
+                    community={community as Community}
                     isJoined={false}
-                    onJoin={() => handleJoinCommunity(community)}
+                    onJoin={() => handleJoinCommunity(community as Community)}
                     isJoining={joinCommunity.isPending}
                     index={index}
                   />
