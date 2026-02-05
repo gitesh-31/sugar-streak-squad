@@ -20,19 +20,11 @@ export function useCommunities() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch all communities with membership status
+  // Fetch only communities the user is a member of, plus available ones for search
   const { data: communities = [], isLoading } = useQuery({
     queryKey: ["communities", user?.id],
     queryFn: async () => {
-      // Get all communities
-      const { data: allCommunities, error: commError } = await supabase
-        .from("communities")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (commError) throw commError;
-
-      // Get user's memberships
+      // Get user's memberships first
       const { data: memberships, error: memError } = await supabase
         .from("community_memberships")
         .select("community_id")
@@ -41,10 +33,23 @@ export function useCommunities() {
       if (memError) throw memError;
 
       const joinedIds = new Set(memberships?.map((m) => m.community_id) || []);
+      
+      // Only fetch communities the user has joined
+      if (joinedIds.size === 0) {
+        return []; // New user with no communities
+      }
+
+      const { data: joinedCommunities, error: commError } = await supabase
+        .from("communities")
+        .select("*")
+        .in("id", Array.from(joinedIds))
+        .order("created_at", { ascending: false });
+
+      if (commError) throw commError;
 
       // Get top streaks for each community (from profiles of members)
       const communitiesWithData = await Promise.all(
-        (allCommunities || []).map(async (community) => {
+        (joinedCommunities || []).map(async (community) => {
           // Get members of this community
           const { data: memberProfiles } = await supabase
             .from("community_memberships")
@@ -77,7 +82,7 @@ export function useCommunities() {
 
           return {
             ...community,
-            isJoined: joinedIds.has(community.id),
+            isJoined: true,
             yourRank,
             topStreak,
           };
@@ -204,12 +209,33 @@ export function useCommunities() {
   });
 
   const joinedCommunities = communities.filter((c) => c.isJoined);
-  const availableCommunities = communities.filter((c) => !c.isJoined);
+  
+  // Search for available communities (fetched separately when searching)
+  const searchCommunities = useMutation({
+    mutationFn: async (query: string) => {
+      if (!query.trim()) return [];
+      
+      const { data, error } = await supabase
+        .from("communities")
+        .select("*")
+        .ilike("name", `%${query}%`)
+        .order("member_count", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      
+      // Filter out already joined communities
+      const joinedIds = new Set(communities.map((c) => c.id));
+      return (data || []).filter((c) => !joinedIds.has(c.id));
+    },
+  });
 
   return {
     communities,
     joinedCommunities,
-    availableCommunities,
+    searchCommunities: searchCommunities.mutateAsync,
+    searchResults: searchCommunities.data || [],
+    isSearching: searchCommunities.isPending,
     isLoading,
     createCommunity,
     joinCommunity,
