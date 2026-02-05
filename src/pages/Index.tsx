@@ -37,7 +37,7 @@ export default function Index() {
   const [goalsDialogOpen, setGoalsDialogOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { profile, loading: profileLoading, refetchProfile } = useProfile();
-  const { entries, loading: entriesLoading, getTodayStats, refetch, updateEntry, deleteEntry } = useFoodEntries();
+  const { entries, loading: entriesLoading, getTodayStats, refetch, updateEntry, deleteEntry } = useFoodEntries();  
   const { data: leaderboard = [] } = useLeaderboard();
   const { calculateAndUpdateStreak } = useStreakCalculator();
   const { yesterdayLog, updateTodayLog, refetch: refetchDailyLogs } = useDailyLogs();
@@ -81,7 +81,8 @@ export default function Index() {
     toast.success("Signed out successfully");
   };
 
-  if (profileLoading) {
+  // Show loading state while profile is loading OR if user exists but profile hasn't loaded yet
+  if (profileLoading || (user && !profile)) {
     return (
       <div className="min-h-screen gradient-hero flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -130,6 +131,14 @@ export default function Index() {
       case "leaderboard":
         return <RanksPage />;
       case "profile":
+        // Ensure profile is loaded before showing profile tab
+        if (!profile) {
+          return (
+            <div className="container px-4 py-6 flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          );
+        }
         return (
           <div className="container px-4 py-6 space-y-6">
             <div className="rounded-2xl bg-card shadow-card p-6 text-center">
