@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, Plus, Crown, UserPlus, ChevronRight, Search, Share2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
     createCommunity,
     joinCommunity,
     leaveCommunity,
+    checkIsCreator,
   } = useCommunities();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -44,6 +45,20 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+  const [isCreator, setIsCreator] = useState(false);
+
+  // Check creator status when a community is selected for the detail dialog
+  useEffect(() => {
+    const checkCreatorStatus = async () => {
+      if (selectedCommunity && detailDialogOpen) {
+        const creatorStatus = await checkIsCreator(selectedCommunity.id);
+        setIsCreator(creatorStatus);
+      } else {
+        setIsCreator(false);
+      }
+    };
+    checkCreatorStatus();
+  }, [selectedCommunity, detailDialogOpen, checkIsCreator]);
 
   // Debounced search
   const handleSearch = async (query: string) => {
@@ -296,7 +311,7 @@ export function CommunityPage({ onBack }: CommunityPageProps) {
             communityId={selectedCommunity.id}
             communityName={selectedCommunity.name}
             onLeave={handleLeaveCommunity}
-            isCreator={selectedCommunity.created_by === user?.id}
+            isCreator={isCreator}
           />
         )}
       </div>

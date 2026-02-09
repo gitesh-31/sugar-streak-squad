@@ -9,7 +9,6 @@ export interface Community {
   description: string | null;
   image_url: string | null;
   member_count: number | null;
-  created_by: string | null;
   created_at: string;
   isJoined?: boolean;
   yourRank?: number;
@@ -210,13 +209,14 @@ export function useCommunities() {
 
   const joinedCommunities = communities.filter((c) => c.isJoined);
   
-  // Search for available communities (fetched separately when searching)
+  // Search for available communities using the public view (excludes created_by for privacy)
   const searchCommunities = useMutation({
     mutationFn: async (query: string) => {
       if (!query.trim()) return [];
       
+      // Use the communities_public view which excludes the created_by field for privacy
       const { data, error } = await supabase
-        .from("communities")
+        .from("communities_public")
         .select("*")
         .ilike("name", `%${query}%`)
         .order("member_count", { ascending: false })
@@ -230,6 +230,21 @@ export function useCommunities() {
     },
   });
 
+  // Check if the current user is the creator of a community (secure server-side check)
+  const checkIsCreator = async (communityId: string): Promise<boolean> => {
+    if (!user) return false;
+    
+    const { data, error } = await supabase
+      .rpc("is_community_creator", { _community_id: communityId, _user_id: user.id });
+    
+    if (error) {
+      console.error("Error checking creator status:", error);
+      return false;
+    }
+    
+    return data === true;
+  };
+
   return {
     communities,
     joinedCommunities,
@@ -240,5 +255,6 @@ export function useCommunities() {
     createCommunity,
     joinCommunity,
     leaveCommunity,
+    checkIsCreator,
   };
 }
